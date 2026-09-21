@@ -1,31 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { supabaseAdmin } from "@/lib/supabase";
 import { ACTIVITIES, isActivityType } from "@/lib/activities";
-
-export const runtime = "nodejs";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(request: NextRequest) {
   try {
-    const form = await request.formData();
-    const participantId = String(form.get("participantId") ?? "");
-    const type = String(form.get("type") ?? "");
-    const file = form.get("photo");
+    const body = await request.json();
+
+    const participantId = String(body.participantId ?? "");
+    const type = String(body.type ?? "");
+    const photoPath = String(body.photoPath ?? "");
 
     if (!participantId || !isActivityType(type)) {
-      return NextResponse.json({ error: "Dados da atividade inválidos." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Dados da atividade inválidos." },
+        { status: 400 }
+      );
     }
 
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: "A foto é obrigatória." }, { status: 400 });
-    }
-
-    if (!file.type.startsWith("image/")) {
-      return NextResponse.json({ error: "Envie uma imagem." }, { status: 400 });
-    }
-
-    if (file.size > 8 * 1024 * 1024) {
-      return NextResponse.json({ error: "A foto deve ter no máximo 8 MB." }, { status: 400 });
+    if (!photoPath) {
+      return NextResponse.json(
+        { error: "A foto é obrigatória." },
+        { status: 400 }
+      );
     }
 
     const participant = await prisma.participant.findUnique({
@@ -33,7 +30,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!participant) {
-      return NextResponse.json({ error: "Participante não encontrado." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Participante não encontrado." },
+        { status: 404 }
+      );
     }
 
     const activityDate = new Date().toLocaleDateString("en-CA", {
@@ -42,7 +42,10 @@ export async function POST(request: NextRequest) {
 
     const existing = await prisma.activity.findUnique({
       where: {
-        participantId_activityDate: { participantId, activityDate },
+        participantId_activityDate: {
+          participantId,
+          activityDate,
+        },
       },
     });
 
@@ -53,48 +56,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-
-
-    
-    const path = `${participantId}/${activityDate}-${crypto.randomUUID()}.${extension}`;
-    console.log(`Uploading file to Supabase storage at path: ${path}`);
-    const buffer = Buffer.from(await file.arrayBuffer());
-
-    const upload = await supabaseAdmin.storage
+    const { data: publicUrlData } = supabaseAdmin.storage
       .from("activity-photos")
-      .upload(path, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    console.log(upload.error);
-    console.log(process.env.SUPABASE_SERVICE_ROLE_KEY);
-
-    if (upload.error) {
-      return NextResponse.json(
-        { error: `Erro ao salvar foto: ${upload.error.message}` },
-        { status: 500 }
-      );
-    }
-
-    const publicUrl = supabaseAdmin.storage
-      .from("activity-photos")
-      .getPublicUrl(path).data.publicUrl;
+      .getPublicUrl(photoPath);
 
     const activity = await prisma.activity.create({
       data: {
         participantId,
         type,
         points: ACTIVITIES[type].points,
-        photoUrl: publicUrl,
+        photoUrl: publicUrlData.publicUrl,
         activityDate,
       },
     });
 
-    return NextResponse.json({ activity }, { status: 201 });
+    return NextResponse.json(
+      { activity },
+      { status: 201 }
+    );
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Erro interno ao registrar atividade." }, { status: 500 });
+
+    return NextResponse.json(
+      { error: "Erro interno ao registrar atividade." },
+      { status: 500 }
+    );
   }
 }
