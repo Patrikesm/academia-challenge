@@ -54,12 +54,12 @@ export default function Admin() {
 
   return (
     <>
-      <div className="card">
+      {/* <div className="card">
         <h1>Administração</h1>
         <p className="muted">
           MVP: esta área ainda não tem autenticação. Antes de publicar, vamos proteger esta rota.
         </p>
-      </div>
+      </div> */}
 
       <div className="card">
         <h2>Cadastrar participante</h2>
