@@ -16,15 +16,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/participant/route.js"
     ],
-    "/api/photo/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/photo/route.js"
-    ],
     "/api/activities/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/activities/route.js"
+    ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
     ]
   }
 }

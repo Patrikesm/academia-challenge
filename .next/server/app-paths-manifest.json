@@ -1,6 +1,6 @@
 {
   "/api/participant/route": "app/api/participant/route.js",
-  "/api/photo/route": "app/api/photo/route.js",
   "/api/activities/route": "app/api/activities/route.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/page": "app/page.js"
 }

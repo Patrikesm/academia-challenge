@@ -53,7 +53,7 @@ export default function Dashboard() {
     }, []);
 
     async function submit() {
-        if (!participantId || !selected || !file) {
+        if (!participantId || !selected /*|| !file*/) {
             setError('Escolha uma atividade e envie uma foto.');
             return;
         }
@@ -67,44 +67,44 @@ export default function Dashboard() {
             // 1. PEDIR AO BACKEND PARA PREPARAR O UPLOAD
             // ==========================================
 
-            const prepareUpload = await fetch('/api/photo', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    participantId,
-                    fileName: file.name,
-                    contentType: file.type,
-                }),
-            });
+            // const prepareUpload = await fetch('/api/photo', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         participantId,
+            //         fileName: file.name,
+            //         contentType: file.type,
+            //     }),
+            // });
 
             // const uploadInfo = await prepareUpload.json();
 
-            const uploadText = await prepareUpload.text();
+            // const uploadText = await prepareUpload.text();
 
-            console.log("STATUS:", prepareUpload.status);
-            console.log("RESPOSTA:", uploadText);
+            // console.log("STATUS:", prepareUpload.status);
+            // console.log("RESPOSTA:", uploadText);
 
-            const uploadInfo = JSON.parse(uploadText);
+            // const uploadInfo = JSON.parse(uploadText);
 
-            if (!prepareUpload.ok) {
-                throw new Error(
-                    uploadInfo.error ?? 'Não foi possível preparar o upload.',
-                );
-            }
+            // if (!prepareUpload.ok) {
+            //     throw new Error(
+            //         uploadInfo.error ?? 'Não foi possível preparar o upload.',
+            //     );
+            // }
 
             // ==========================================
             // 2. UPLOAD DIRETO PARA O SUPABASE STORAGE
             // ==========================================
 
-            const { error: uploadError } = await supabase.storage
-                .from('activity-photos')
-                .uploadToSignedUrl(uploadInfo.path, uploadInfo.token, file);
+            // const { error: uploadError } = await supabase.storage
+            //     .from('activity-photos')
+            //     .uploadToSignedUrl(uploadInfo.path, uploadInfo.token, file);
 
-            if (uploadError) {
-                throw new Error(`Erro ao enviar foto: ${uploadError.message}`);
-            }
+            // if (uploadError) {
+            //     throw new Error(`Erro ao enviar foto: ${uploadError.message}`);
+            // }
 
             // ==========================================
             // 3. REGISTRAR A ATIVIDADE NO BACKEND
@@ -118,7 +118,7 @@ export default function Dashboard() {
                 body: JSON.stringify({
                     participantId,
                     type: selected,
-                    photoPath: uploadInfo.path,
+                    photoPath: 'teste'//uploadInfo.path,
                 }),
             });
 
@@ -208,11 +208,11 @@ export default function Dashboard() {
                         </strong>{' '}
                         — +{status.todayActivity.points} pontos
                     </p>
-                    <img
+                    {/* <img
                         className="photo"
                         src={status.todayActivity.photoUrl}
                         alt="Comprovante da atividade"
-                    />
+                    /> */}
                     <div className="notice">
                         Você já registrou sua atividade hoje.
                     </div>
@@ -245,14 +245,14 @@ export default function Dashboard() {
                         ))}
                     </div>
 
-                    <label htmlFor="photo">Foto da atividade</label>
+                    {/* <label htmlFor="photo">Foto da atividade</label>
                     <input
                         id="photo"
                         type="file"
                         accept="image/*"
                         capture="environment"
                         onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    />
+                    /> */}
 
                     {error && <div className="error">{error}</div>}
                     {message && <div className="notice">{message}</div>}
