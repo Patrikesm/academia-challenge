@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedParticipant } from "@/lib/auth";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,11 +13,16 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const participantId = String(body.participantId ?? "");
+    const participant = await getAuthenticatedParticipant();
+    if (!participant) {
+      return NextResponse.json({ error: "Faça login para enviar uma foto." }, { status: 401 });
+    }
+
+    const participantId = participant.id;
     const fileName = String(body.fileName ?? "");
     const contentType = String(body.contentType ?? "");
 
-    if (!participantId || !fileName || !contentType) {
+    if (!fileName || !contentType) {
       return NextResponse.json(
         { error: "Dados do upload inválidos." },
         { status: 400 }
@@ -27,17 +33,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Envie uma imagem." },
         { status: 400 }
-      );
-    }
-
-    const participant = await prisma.participant.findUnique({
-      where: { id: participantId },
-    });
-
-    if (!participant) {
-      return NextResponse.json(
-        { error: "Participante não encontrado." },
-        { status: 404 }
       );
     }
 

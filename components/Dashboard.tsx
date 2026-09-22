@@ -8,6 +8,7 @@ import { supabase } from '@/lib/activities';
 type Status = {
     participant: { id: string; name: string; email: string };
     todayActivities: {
+        id: string;
         type: ActivityType;
         points: number;
         photoUrl: string;
@@ -26,20 +27,8 @@ export default function Dashboard() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const participantId =
-        typeof window !== 'undefined'
-            ? localStorage.getItem('participantId')
-            : null;
-
     async function load() {
-        if (!participantId) {
-            router.push('/');
-            return;
-        }
-
-        const response = await fetch(
-            `/api/participant?participantId=${participantId}`,
-        );
+        const response = await fetch('/api/participant');
         if (!response.ok) {
             router.push('/');
             return;
@@ -53,7 +42,7 @@ export default function Dashboard() {
     }, []);
 
     async function submit() {
-        if (!participantId || selected.length === 0) {
+        if (selected.length === 0) {
             setError('Escolha pelo menos uma atividade.');
             return;
         }
@@ -79,7 +68,6 @@ export default function Dashboard() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            participantId,
                             fileName: file.name,
                             contentType: file.type,
                         }),
@@ -110,7 +98,6 @@ export default function Dashboard() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    participantId,
                     types: selected,
                     photoPaths: Object.fromEntries(uploadedPaths),
                 }),
@@ -165,10 +152,24 @@ export default function Dashboard() {
                 <div className="card">
                     <h2>Atividades de hoje ✅</h2>
                     {status.todayActivities.map((activity) => (
-                        <p key={activity.type}>
+                        <div className="activity-summary" key={activity.id}>
                             <strong>{ACTIVITIES[activity.type].name}</strong>{' '}
-                            — +{activity.points} pontos
-                        </p>
+                            <span>— +{activity.points} pontos</span>
+                            <button
+                                type="button"
+                                className="button-danger"
+                                onClick={async () => {
+                                    const response = await fetch(`/api/activities/${activity.id}`, { method: 'DELETE' });
+                                    if (response.ok) await load();
+                                    else {
+                                        const data = await response.json();
+                                        setError(data.error ?? 'Não foi possível excluir.');
+                                    }
+                                }}
+                            >
+                                Excluir
+                            </button>
+                        </div>
                     ))}
                     <p className="muted">
                         Total de hoje: {status.todayPoints}/{MAX_DAILY_POINTS} pontos

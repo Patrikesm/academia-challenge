@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-function authorized(request: NextRequest) {
-  const configured = process.env.ADMIN_EMAIL;
-  const provided = request.headers.get("x-admin-email");
-  return Boolean(configured && provided && provided === configured);
-}
+import { hashPassword } from "@/lib/auth";
+import { getAuthenticatedParticipant } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) {
-    // Temporary MVP behavior: allow read while local testing.
+  if (!(await getAuthenticatedParticipant())) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const participants = await prisma.participant.findMany({
@@ -20,20 +16,28 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!(await getAuthenticatedParticipant())) {
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  }
+
   const body = await request.json();
   const name = String(body.name ?? "").trim();
   const email = String(body.email ?? "").trim().toLowerCase();
+  const password = String(body.password ?? "");
 
-  if (!name || !email) {
-    return NextResponse.json({ error: "Nome e e-mail são obrigatórios." }, { status: 400 });
+  if (!name || !email || password.length < 6) {
+    return NextResponse.json({ error: "Nome, e-mail e senha (mínimo de 6 caracteres) são obrigatórios." }, { status: 400 });
   }
 
   try {
     const participant = await prisma.participant.create({
-      data: { name, email },
+      data: { name, email, passwordHash: await hashPassword(password) },
     });
 
-    return NextResponse.json(participant, { status: 201 });
+    return NextResponse.json(
+      { id: participant.id, name: participant.name, email: participant.email },
+      { status: 201 },
+    );
   } catch {
     return NextResponse.json({ error: "Esse e-mail já está cadastrado." }, { status: 409 });
   }

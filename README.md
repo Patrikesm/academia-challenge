@@ -18,6 +18,8 @@ MVP full-stack para um grupo pequeno de academia.
 - Caminhada 3km: 6 pontos
 - Foto obrigatória
 - É possível registrar mais de uma atividade por dia, respeitando o limite de 18 pontos
+- Login com e-mail e senha, mantido por sessão persistente no dispositivo
+- A tela `/minha-atividade` permite registrar atividades e excluir apenas registros do dia atual
 
 ## Rodar localmente
 
@@ -43,16 +45,14 @@ Depois configure as variáveis do `.env`.
 
 ## Importante antes de publicar
 
-A rota `/admin` ainda é uma área de MVP e precisa receber autenticação antes do deploy público.
+O login dos participantes usa sessão em cookie `httpOnly` por 30 dias. As rotas de participante validam essa sessão no servidor.
 
-Também vale adicionar:
+Ainda vale adicionar:
 
 - limite de tamanho/compressão de imagens;
 - exclusão de atividade pelo admin;
-- autenticação real por código/magic link;
-- proteção contra uso de e-mail de outra pessoa;
 - regras de acesso do Supabase Storage.
 
 ## Participantes
 
-O cadastro pode ser feito em `/admin`. Depois, o participante entra usando o e-mail cadastrado.
+O cadastro pode ser feito em `/admin`, informando nome, e-mail e uma senha de pelo menos 6 caracteres. Depois, o participante entra usando essas credenciais.

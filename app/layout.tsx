@@ -1,22 +1,27 @@
 import "./globals.css";
-import Link from "next/link";
+import { getAuthenticatedParticipant } from "@/lib/auth";
+import SessionNav from "@/components/SessionNav";
 
 export const metadata = {
   title: "Desafio Academia",
   description: "Pontuação diária do grupo",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const participant = await getAuthenticatedParticipant();
+
   return (
     <>
       <header>
         <div className="container header-inner">
           <div className="logo">🏆 Desafio Academia</div>
-          <nav>
-            <Link href="/">Início</Link>
-            <Link href="/ranking">Ranking</Link>
-            <Link href="/admin">Admin</Link>
-          </nav>
+          <SessionNav
+            initialParticipant={participant ? {
+              id: participant.id,
+              name: participant.name,
+              email: participant.email,
+            } : null}
+          />
         </div>
       </header>
       {children}

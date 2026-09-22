@@ -3,12 +3,18 @@ import { prisma } from "@/lib/prisma";
 import { ACTIVITIES, isActivityType, MAX_DAILY_POINTS, ActivityType } from "@/lib/activities";
 import { supabaseAdmin } from "@/lib/supabase";
 import { ActivityType as PrismaActivityType } from "@prisma/client";
+import { getAuthenticatedParticipant } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const participantId = String(body.participantId ?? "");
+    const participant = await getAuthenticatedParticipant();
+    if (!participant) {
+      return NextResponse.json({ error: "Faça login para registrar uma atividade." }, { status: 401 });
+    }
+
+    const participantId = participant.id;
     const requestedTypes: unknown[] = Array.isArray(body.types)
       ? body.types
       : body.type
@@ -18,7 +24,6 @@ export async function POST(request: NextRequest) {
     const types = requestedTypes.map((type: unknown) => String(type));
 
     if (
-      !participantId ||
       types.length === 0 ||
       types.some((type) => !isActivityType(type)) ||
       new Set(types).size !== types.length
@@ -37,17 +42,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Envie uma foto para cada atividade selecionada." },
         { status: 400 }
-      );
-    }
-
-    const participant = await prisma.participant.findUnique({
-      where: { id: participantId },
-    });
-
-    if (!participant) {
-      return NextResponse.json(
-        { error: "Participante não encontrado." },
-        { status: 404 }
       );
     }
 
