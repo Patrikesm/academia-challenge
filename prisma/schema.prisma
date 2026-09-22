@@ -25,7 +25,7 @@ model Activity {
   activityDate  String
   createdAt     DateTime    @default(now())
 
-  @@unique([participantId, activityDate])
+  @@unique([participantId, activityDate, type])
   @@index([participantId])
   @@index([activityDate])
 }
@@ -35,4 +35,5 @@ enum ActivityType {
   RUNNING
   CYCLING
   WALKING
+  SOCCER
 }

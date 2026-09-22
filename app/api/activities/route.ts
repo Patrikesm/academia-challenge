@@ -1,17 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ACTIVITIES, isActivityType } from "@/lib/activities";
+import { ACTIVITIES, isActivityType, MAX_DAILY_POINTS, ActivityType } from "@/lib/activities";
 import { supabaseAdmin } from "@/lib/supabase";
+import { ActivityType as PrismaActivityType } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     const participantId = String(body.participantId ?? "");
-    const type = String(body.type ?? "");
+    const requestedTypes: unknown[] = Array.isArray(body.types)
+      ? body.types
+      : body.type
+        ? [body.type]
+        : [];
     const photoPath = String(body.photoPath ?? "");
+    const types = requestedTypes.map((type: unknown) => String(type));
 
-    if (!participantId || !isActivityType(type)) {
+    if (
+      !participantId ||
+      types.length === 0 ||
+      types.some((type) => !isActivityType(type)) ||
+      new Set(types).size !== types.length
+    ) {
       return NextResponse.json(
         { error: "Dados da atividade inválidos." },
         { status: 400 }
@@ -40,19 +51,26 @@ export async function POST(request: NextRequest) {
       timeZone: "America/Sao_Paulo",
     });
 
-    const existing = await prisma.activity.findUnique({
-      where: {
-        participantId_activityDate: {
-          participantId,
-          activityDate,
-        },
-      },
+    const todayActivities = await prisma.activity.findMany({
+      where: { participantId, activityDate },
     });
+    const todayPoints = todayActivities.reduce((sum, activity) => sum + activity.points, 0);
+    const selectedPoints = (types as ActivityType[]).reduce(
+      (sum, type) => sum + ACTIVITIES[type].points,
+      0,
+    );
 
-    if (existing) {
+    if (todayActivities.some((activity) => types.includes(activity.type))) {
       return NextResponse.json(
-        { error: "Você já registrou uma atividade hoje." },
+        { error: "Uma ou mais atividades selecionadas já foram registradas hoje." },
         { status: 409 }
+      );
+    }
+
+    if (todayPoints + selectedPoints > MAX_DAILY_POINTS) {
+      return NextResponse.json(
+        { error: `O limite diário é de ${MAX_DAILY_POINTS} pontos.` },
+        { status: 400 }
       );
     }
 
@@ -60,18 +78,22 @@ export async function POST(request: NextRequest) {
       .from("activity-photos")
       .getPublicUrl(photoPath);
 
-    const activity = await prisma.activity.create({
-      data: {
-        participantId,
-        type,
-        points: ACTIVITIES[type].points,
-        photoUrl: publicUrlData.publicUrl,
-        activityDate,
-      },
-    });
+    const activities = await prisma.$transaction(
+      (types as ActivityType[]).map((type) =>
+        prisma.activity.create({
+          data: {
+            participantId,
+            type: PrismaActivityType[type],
+            points: ACTIVITIES[type].points,
+            photoUrl: publicUrlData.publicUrl,
+            activityDate,
+          },
+        }),
+      ),
+    );
 
     return NextResponse.json(
-      { activity },
+      { activities },
       { status: 201 }
     );
   } catch (error) {

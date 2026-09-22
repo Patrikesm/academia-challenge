@@ -17,7 +17,7 @@ MVP full-stack para um grupo pequeno de academia.
 - Bicicleta 10km: 8 pontos
 - Caminhada 3km: 6 pontos
 - Foto obrigatória
-- Um registro por participante por dia
+- É possível registrar mais de uma atividade por dia, respeitando o limite de 18 pontos
 
 ## Rodar localmente
 
