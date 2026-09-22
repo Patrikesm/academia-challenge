@@ -1,4 +1,4 @@
-// File: C:\Users\patri\Documents\Projetos Node\academia-challenge-mvp\app\api\participant\route.ts
+// File: C:\Users\patri\Documents\Projetos Node\academia-challenge-mvp.worktrees\fix-todayactivity-status-multiple-selection\app\api\participant\route.ts
 import * as entry from '../../../../../app/api/participant/route.js'
 import type { NextRequest } from 'next/server.js'
 

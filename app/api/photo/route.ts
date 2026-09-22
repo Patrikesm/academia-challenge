@@ -45,22 +45,6 @@ export async function POST(request: NextRequest) {
       timeZone: "America/Sao_Paulo",
     });
 
-    const existing = await prisma.activity.findUnique({
-      where: {
-        participantId_activityDate: {
-          participantId,
-          activityDate,
-        },
-      },
-    });
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "Você já registrou uma atividade hoje." },
-        { status: 409 }
-      );
-    }
-
     const extension =
       fileName.split(".").pop()?.toLowerCase() || "jpg";
 

@@ -36,8 +36,9 @@ export async function GET(request: NextRequest) {
     timeZone: "America/Sao_Paulo",
   });
 
-  const todayActivity = participant.activities.find((a) => a.activityDate === today) ?? null;
+  const todayActivities = participant.activities.filter((a) => a.activityDate === today);
   const totalPoints = participant.activities.reduce((sum, a) => sum + a.points, 0);
+  const todayPoints = todayActivities.reduce((sum, a) => sum + a.points, 0);
 
   return NextResponse.json({
     participant: {
@@ -45,7 +46,8 @@ export async function GET(request: NextRequest) {
       name: participant.name,
       email: participant.email,
     },
-    todayActivity,
+    todayActivities,
+    todayPoints,
     totalPoints,
     activityCount: participant.activities.length,
   });

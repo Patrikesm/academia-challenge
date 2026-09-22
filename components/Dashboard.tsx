@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ACTIVITIES, ActivityType } from '@/lib/activities';
+import { ACTIVITIES, ActivityType, MAX_DAILY_POINTS } from '@/lib/activities';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/activities'; 
 
 type Status = {
     participant: { id: string; name: string; email: string };
-    todayActivity: {
+    todayActivities: {
         type: ActivityType;
         points: number;
         photoUrl: string;
-    } | null;
+    }[];
+    todayPoints: number;
     totalPoints: number;
     activityCount: number;
 };
@@ -20,7 +21,7 @@ type Status = {
 export default function Dashboard() {
     const router = useRouter();
     const [status, setStatus] = useState<Status | null>(null);
-    const [selected, setSelected] = useState<ActivityType | null>(null);
+    const [selected, setSelected] = useState<ActivityType[]>([]);
     const [file, setFile] = useState<File | null>(null);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -53,7 +54,7 @@ export default function Dashboard() {
     }, []);
 
     async function submit() {
-        if (!participantId || !selected /*|| !file*/) {
+        if (!participantId || selected.length === 0 /*|| !file*/) {
             setError('Escolha uma atividade e envie uma foto.');
             return;
         }
@@ -117,7 +118,7 @@ export default function Dashboard() {
                 },
                 body: JSON.stringify({
                     participantId,
-                    type: selected,
+                    types: selected,
                     photoPath: 'teste'//uploadInfo.path,
                 }),
             });
@@ -133,7 +134,7 @@ export default function Dashboard() {
             // ==========================================
 
             setMessage('Atividade registrada com sucesso! 🎉');
-            setSelected(null);
+            setSelected([]);
             setFile(null);
 
             await load();
@@ -199,25 +200,25 @@ export default function Dashboard() {
                 </p>
             </div>
 
-            {status.todayActivity ? (
+            {status.todayActivities.length > 0 && (
                 <div className="card">
-                    <h2>Atividade de hoje ✅</h2>
-                    <p>
-                        <strong>
-                            {ACTIVITIES[status.todayActivity.type].name}
-                        </strong>{' '}
-                        — +{status.todayActivity.points} pontos
+                    <h2>Atividades de hoje ✅</h2>
+                    {status.todayActivities.map((activity) => (
+                        <p key={activity.type}>
+                            <strong>{ACTIVITIES[activity.type].name}</strong>{' '}
+                            — +{activity.points} pontos
+                        </p>
+                    ))}
+                    <p className="muted">
+                        Total de hoje: {status.todayPoints}/{MAX_DAILY_POINTS} pontos
                     </p>
-                    {/* <img
-                        className="photo"
-                        src={status.todayActivity.photoUrl}
-                        alt="Comprovante da atividade"
-                    /> */}
                     <div className="notice">
-                        Você já registrou sua atividade hoje.
+                        Você pode registrar outras atividades até atingir o limite diário.
                     </div>
                 </div>
-            ) : (
+            )}
+
+            {status.todayPoints < MAX_DAILY_POINTS ? (
                 <div className="card">
                     <h2>Escolha sua atividade</h2>
 
@@ -227,12 +228,33 @@ export default function Dashboard() {
                                 ActivityType,
                                 (typeof ACTIVITIES)[ActivityType],
                             ][]
-                        ).map(([type, activity]) => (
-                            <button
+                        ).map(([type, activity]) => {
+                            const isSelected = selected.includes(type);
+                            const alreadyRegistered = status.todayActivities.some(
+                                (item) => item.type === type,
+                            );
+                            const selectedPoints = selected.reduce(
+                                (sum, selectedType) =>
+                                    sum + ACTIVITIES[selectedType].points,
+                                0,
+                            );
+                            const exceedsLimit =
+                                !isSelected &&
+                                status.todayPoints + selectedPoints + activity.points >
+                                    MAX_DAILY_POINTS;
+
+                            return <button
                                 type="button"
                                 key={type}
-                                className={`activity-option ${selected === type ? 'selected' : ''}`}
-                                onClick={() => setSelected(type)}
+                                className={`activity-option ${isSelected ? 'selected' : ''}`}
+                                disabled={alreadyRegistered || exceedsLimit}
+                                onClick={() =>
+                                    setSelected((current) =>
+                                        isSelected
+                                            ? current.filter((item) => item !== type)
+                                            : [...current, type],
+                                    )
+                                }
                             >
                                 <span style={{ fontSize: 28 }}>
                                     {activity.emoji}
@@ -241,8 +263,11 @@ export default function Dashboard() {
                                 <span className="points">
                                     +{activity.points} pontos
                                 </span>
-                            </button>
-                        ))}
+                                {alreadyRegistered && (
+                                    <span className="muted">Já registrada hoje</span>
+                                )}
+                            </button>;
+                        })}
                     </div>
 
                     {/* <label htmlFor="photo">Foto da atividade</label>
@@ -264,6 +289,12 @@ export default function Dashboard() {
                     >
                         {loading ? 'Enviando...' : 'Registrar atividade'}
                     </button>
+                </div>
+            ) : (
+                <div className="card">
+                    <div className="notice">
+                        Você atingiu o limite diário de {MAX_DAILY_POINTS} pontos.
+                    </div>
                 </div>
             )}
         </>

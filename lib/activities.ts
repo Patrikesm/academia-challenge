@@ -5,7 +5,10 @@ export const ACTIVITIES = {
   RUNNING: { name: "Corrida 5km", points: 8, emoji: "🏃" },
   CYCLING: { name: "Bicicleta 10km", points: 8, emoji: "🚴" },
   WALKING: { name: "Caminhada 3km", points: 6, emoji: "🚶" },
+  SOCCER: { name: "Futebol", points: 6, emoji: "⚽" },
 } as const;
+
+export const MAX_DAILY_POINTS = 18;
 
 export type ActivityType = keyof typeof ACTIVITIES;
 
