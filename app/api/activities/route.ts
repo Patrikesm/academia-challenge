@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         prisma.activity.create({
           data: {
             participantId,
-            type: PrismaActivityType[type],
+            type: type as PrismaActivityType,
             points: ACTIVITIES[type].points,
             photoUrl: publicUrlData.publicUrl,
             activityDate,
