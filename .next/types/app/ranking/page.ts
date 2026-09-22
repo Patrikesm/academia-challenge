@@ -1,4 +1,4 @@
-// File: C:\Users\patri\Documents\Projetos Node\academia-challenge-mvp.worktrees\fix-todayactivity-status-multiple-selection\app\ranking\page.tsx
+// File: C:\Users\patri\Documents\Projetos Node\academia-challenge-mvp\app\ranking\page.tsx
 import * as entry from '../../../../app/ranking/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

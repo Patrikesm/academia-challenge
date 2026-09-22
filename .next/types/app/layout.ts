@@ -1,4 +1,4 @@
-// File: C:\Users\patri\Documents\Projetos Node\academia-challenge-mvp.worktrees\fix-todayactivity-status-multiple-selection\app\layout.tsx
+// File: C:\Users\patri\Documents\Projetos Node\academia-challenge-mvp\app\layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

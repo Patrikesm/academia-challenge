@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       : body.type
         ? [body.type]
         : [];
-    const photoPath = String(body.photoPath ?? "");
+    const photoPaths = body.photoPaths;
     const types = requestedTypes.map((type: unknown) => String(type));
 
     if (
@@ -29,9 +29,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!photoPath) {
+    if (
+      !photoPaths ||
+      typeof photoPaths !== "object" ||
+      types.some((type) => typeof photoPaths[type] !== "string" || !photoPaths[type])
+    ) {
       return NextResponse.json(
-        { error: "A foto é obrigatória." },
+        { error: "Envie uma foto para cada atividade selecionada." },
         { status: 400 }
       );
     }
@@ -74,10 +78,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: publicUrlData } = supabaseAdmin.storage
-      .from("activity-photos")
-      .getPublicUrl(photoPath);
-
     const activities = await prisma.$transaction(
       (types as ActivityType[]).map((type) =>
         prisma.activity.create({
@@ -85,7 +85,9 @@ export async function POST(request: NextRequest) {
             participantId,
             type: type as PrismaActivityType,
             points: ACTIVITIES[type].points,
-            photoUrl: publicUrlData.publicUrl,
+            photoUrl: supabaseAdmin.storage
+              .from("activity-photos")
+              .getPublicUrl(photoPaths[type]).data.publicUrl,
             activityDate,
           },
         }),

@@ -16,6 +16,16 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/participant/route.js"
     ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
+    ],
+    "/api/photo/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/photo/route.js"
+    ],
     "/api/activities/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -30,11 +40,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/ranking/route.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
     ],
     "/admin/page": [
       "static/chunks/webpack.js",

@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ACTIVITIES, ActivityType, MAX_DAILY_POINTS } from '@/lib/activities';
-import { createClient } from '@supabase/supabase-js';
 import { supabase } from '@/lib/activities'; 
 
 type Status = {
@@ -22,7 +21,7 @@ export default function Dashboard() {
     const router = useRouter();
     const [status, setStatus] = useState<Status | null>(null);
     const [selected, setSelected] = useState<ActivityType[]>([]);
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<Partial<Record<ActivityType, File>>>({});
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -54,8 +53,13 @@ export default function Dashboard() {
     }, []);
 
     async function submit() {
-        if (!participantId || selected.length === 0 /*|| !file*/) {
-            setError('Escolha uma atividade e envie uma foto.');
+        if (!participantId || selected.length === 0) {
+            setError('Escolha pelo menos uma atividade.');
+            return;
+        }
+
+        if (selected.some((type) => !files[type])) {
+            setError('Envie uma foto para cada atividade selecionada.');
             return;
         }
 
@@ -64,52 +68,41 @@ export default function Dashboard() {
         setMessage('');
 
         try {
-            // ==========================================
-            // 1. PEDIR AO BACKEND PARA PREPARAR O UPLOAD
-            // ==========================================
+            const uploadedPaths = await Promise.all(
+                selected.map(async (type) => {
+                    const file = files[type];
+                    if (!file) {
+                        throw new Error('Envie uma foto para cada atividade selecionada.');
+                    }
 
-            // const prepareUpload = await fetch('/api/photo', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify({
-            //         participantId,
-            //         fileName: file.name,
-            //         contentType: file.type,
-            //     }),
-            // });
+                    const prepareUpload = await fetch('/api/photo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            participantId,
+                            fileName: file.name,
+                            contentType: file.type,
+                        }),
+                    });
+                    const uploadInfo = await prepareUpload.json();
 
-            // const uploadInfo = await prepareUpload.json();
+                    if (!prepareUpload.ok) {
+                        throw new Error(
+                            uploadInfo.error ?? 'Não foi possível preparar o upload.',
+                        );
+                    }
 
-            // const uploadText = await prepareUpload.text();
+                    const { error: uploadError } = await supabase.storage
+                        .from('activity-photos')
+                        .uploadToSignedUrl(uploadInfo.path, uploadInfo.token, file);
 
-            // console.log("STATUS:", prepareUpload.status);
-            // console.log("RESPOSTA:", uploadText);
+                    if (uploadError) {
+                        throw new Error(`Erro ao enviar foto: ${uploadError.message}`);
+                    }
 
-            // const uploadInfo = JSON.parse(uploadText);
-
-            // if (!prepareUpload.ok) {
-            //     throw new Error(
-            //         uploadInfo.error ?? 'Não foi possível preparar o upload.',
-            //     );
-            // }
-
-            // ==========================================
-            // 2. UPLOAD DIRETO PARA O SUPABASE STORAGE
-            // ==========================================
-
-            // const { error: uploadError } = await supabase.storage
-            //     .from('activity-photos')
-            //     .uploadToSignedUrl(uploadInfo.path, uploadInfo.token, file);
-
-            // if (uploadError) {
-            //     throw new Error(`Erro ao enviar foto: ${uploadError.message}`);
-            // }
-
-            // ==========================================
-            // 3. REGISTRAR A ATIVIDADE NO BACKEND
-            // ==========================================
+                    return [type, uploadInfo.path] as const;
+                }),
+            );
 
             const response = await fetch('/api/activities', {
                 method: 'POST',
@@ -119,7 +112,7 @@ export default function Dashboard() {
                 body: JSON.stringify({
                     participantId,
                     types: selected,
-                    photoPath: 'teste'//uploadInfo.path,
+                    photoPaths: Object.fromEntries(uploadedPaths),
                 }),
             });
 
@@ -135,7 +128,7 @@ export default function Dashboard() {
 
             setMessage('Atividade registrada com sucesso! 🎉');
             setSelected([]);
-            setFile(null);
+            setFiles({});
 
             await load();
         } catch (error) {
@@ -150,38 +143,6 @@ export default function Dashboard() {
             setLoading(false);
         }
 
-        // if (!participantId || !selected || !file) {
-        //   setError("Escolha uma atividade e envie uma foto.");
-        //   return;
-        // }
-
-        // setLoading(true);
-        // setError("");
-        // setMessage("");
-
-        // const form = new FormData();
-        // form.append("participantId", participantId);
-        // form.append("type", selected);
-        // form.append("photo", file);
-
-        // const response = await fetch("/api/activities", {
-        //   method: "POST",
-        //   body: form,
-        // });
-
-        // const data = await response.json();
-
-        // if (!response.ok) {
-        //   setError(data.error ?? "Não foi possível registrar.");
-        //   setLoading(false);
-        //   return;
-        // }
-
-        // setMessage("Atividade registrada com sucesso! 🎉");
-        // setSelected(null);
-        // setFile(null);
-        // await load();
-        // setLoading(false);
     }
 
     if (!status) {
@@ -249,11 +210,20 @@ export default function Dashboard() {
                                 className={`activity-option ${isSelected ? 'selected' : ''}`}
                                 disabled={alreadyRegistered || exceedsLimit}
                                 onClick={() =>
-                                    setSelected((current) =>
-                                        isSelected
-                                            ? current.filter((item) => item !== type)
-                                            : [...current, type],
-                                    )
+                                    {
+                                        setSelected((current) =>
+                                            isSelected
+                                                ? current.filter((item) => item !== type)
+                                                : [...current, type],
+                                        );
+                                        if (isSelected) {
+                                            setFiles((current) => {
+                                                const next = { ...current };
+                                                delete next[type];
+                                                return next;
+                                            });
+                                        }
+                                    }
                                 }
                             >
                                 <span style={{ fontSize: 28 }}>
@@ -270,14 +240,27 @@ export default function Dashboard() {
                         })}
                     </div>
 
-                    {/* <label htmlFor="photo">Foto da atividade</label>
-                    <input
-                        id="photo"
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    /> */}
+                    {selected.length > 0 && (
+                        <div>
+                            <h3>Envie uma foto para cada atividade</h3>
+                            {selected.map((type) => (
+                                <label key={type} htmlFor={`photo-${type}`}>
+                                    {ACTIVITIES[type].emoji} {ACTIVITIES[type].name}
+                                    <input
+                                        id={`photo-${type}`}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(event) => {
+                                            const file = event.target.files?.[0];
+                                            if (file) {
+                                                setFiles((current) => ({ ...current, [type]: file }));
+                                            }
+                                        }}
+                                    />
+                                </label>
+                            ))}
+                        </div>
+                    )}
 
                     {error && <div className="error">{error}</div>}
                     {message && <div className="notice">{message}</div>}
