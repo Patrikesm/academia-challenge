@@ -50,4 +50,7 @@ enum ActivityType {
   CYCLING
   WALKING
   SOCCER
+  VOLLEYBALL
+  DANCE
+  STAIRS
 }

@@ -1,11 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
 
 export const ACTIVITIES = {
-  GYM: { name: "Academia", points: 10, emoji: "🏋️" },
-  RUNNING: { name: "Corrida 5km", points: 8, emoji: "🏃" },
-  CYCLING: { name: "Bicicleta 10km", points: 8, emoji: "🚴" },
-  WALKING: { name: "Caminhada 3km", points: 6, emoji: "🚶" },
-  SOCCER: { name: "Futebol", points: 6, emoji: "⚽" },
+    GYM: { name: 'Academia', points: 10, emoji: '🏋️' },
+    RUNNING: { name: 'Corrida 5km', points: 8, emoji: '🏃' },
+    CYCLING: { name: 'Bicicleta 10km', points: 8, emoji: '🚴' },
+    WALKING: { name: 'Caminhada 3km', points: 6, emoji: '🚶' },
+    SOCCER: { name: 'Futebol', points: 6, emoji: '⚽' },
+    VOLLEYBALL: { name: 'Vôlei', points: 6, emoji: '🏐' },
+    DANCE: { name: 'Dança', points: 6, emoji: '💃' },
+    STAIRS: { name: 'Escadas 20min', points: 6, emoji: '🏃' },
 } as const;
 
 export const MAX_DAILY_POINTS = 18;
@@ -13,10 +16,10 @@ export const MAX_DAILY_POINTS = 18;
 export type ActivityType = keyof typeof ACTIVITIES;
 
 export function isActivityType(value: string): value is ActivityType {
-  return value in ACTIVITIES;
+    return value in ACTIVITIES;
 }
 
 export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
